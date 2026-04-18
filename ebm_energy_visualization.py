@@ -2,7 +2,7 @@ import os
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from ebm_cd_mcmc import EnergyNet, langevin_step, Config, set_seed
+from ebm_cd_mcmc import EnergyNet, langevin_step, Config, set_seed, sample_mog
 
 
 def load_trained_model(cfg):
@@ -46,7 +46,7 @@ def compute_probability_from_energy(energy_grid, normalize=True):
 def sample_and_visualize_energy_progression(model, cfg):
     """
     Generate samples from EBM and save energy visualization at each step.
-    Returns list of energy grids and probability grids.
+    Returns list of (energy_grid, samples) tuples for each frame.
     """
     model.eval()
     with torch.no_grad():
@@ -55,31 +55,34 @@ def sample_and_visualize_energy_progression(model, cfg):
     frames = []
     steps = cfg.cd_k * 4
     
+    # Compute energy grid once (it's static for the trained model)
+    X, Y, energy_grid = compute_energy_grid(
+        model, 
+        x_min=-10, 
+        x_max=10, 
+        y_min=-10, 
+        y_max=10, 
+        grid_size=100,
+        device=cfg.device
+    )
+    prob_grid = compute_probability_from_energy(energy_grid, normalize=True)
+    
     print(f"Generating {steps} steps of Langevin dynamics...")
     for i in range(steps):
         x = langevin_step(x, model, cfg.langevin_step_size, cfg.langevin_noise_scale)
         
         if i % cfg.save_every == 0 or i == steps - 1:
-            # Compute energy grid
-            X, Y, energy_grid = compute_energy_grid(
-                model, 
-                x_min=-10, 
-                x_max=10, 
-                y_min=-10, 
-                y_max=10, 
-                grid_size=100,
-                device=cfg.device
-            )
-            prob_grid = compute_probability_from_energy(energy_grid, normalize=True)
-            frames.append((X, Y, prob_grid))
+            # Save energy and current samples
+            samples = x.detach().cpu().numpy()
+            frames.append((X, Y, prob_grid, samples))
             print(f"  Step {i+1}/{steps}")
     
     return frames
 
 
-def save_energy_grid(frames, cfg, tag=""):
+def save_energy_grid(frames, cfg, tag="", real_data=None):
     """
-    Save energy visualizations in a grid layout (similar to ebm_grid).
+    Save energy visualizations in a grid layout with overlaid samples.
     """
     try:
         import matplotlib.pyplot as plt
@@ -116,9 +119,21 @@ def save_energy_grid(frames, cfg, tag=""):
         ax.axis("off")
         
         if idx < n_frames:
-            X, Y, prob_grid = frames[idx]
+            X, Y, prob_grid, samples = frames[idx]
+            
+            # Plot energy landscape
             im = ax.contourf(X, Y, prob_grid, levels=20, cmap='viridis', vmin=vmin, vmax=vmax)
+            
+            # Overlay current samples in light blue (Gaussian noise)
+            ax.scatter(samples[:, 0], samples[:, 1], s=5, c='cyan', alpha=0.4)
+            
+            # Overlay real data in red
+            if real_data is not None:
+                ax.scatter(real_data[:, 0], real_data[:, 1], s=8, c='red', alpha=0.7)
+            
             ax.set_aspect("equal")
+            ax.set_xlim(-10, 10)
+            ax.set_ylim(-10, 10)
             step = min((idx * cfg.save_every) + 1, total)
             ax.set_title(f"step = {step}", fontsize=9, pad=2)
     
@@ -128,6 +143,15 @@ def save_energy_grid(frames, cfg, tag=""):
     sm.set_array([])
     cbar = fig.colorbar(sm, cax=cbar_ax)
     cbar.set_label('p(x) (unnormalized)', rotation=270, labelpad=20)
+    
+    # Add legend next to the last subplot
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w', markerfacecolor='cyan', markersize=6, alpha=0.4, label='Gaussian Noise'),
+        Line2D([0], [0], marker='o', color='w', markerfacecolor='red', markersize=6, alpha=0.7, label='Real Data')
+    ]
+    # Position legend to the right of the step 120 frame (bottom right)
+    fig.legend(handles=legend_elements, loc='center left', bbox_to_anchor=(0.95, 0.25), fontsize=10)
     
     suffix = f"_{tag}" if tag else ""
     png_path = os.path.join(cfg.save_dir, f"ebm_energy_grid{suffix}.png")
@@ -140,6 +164,10 @@ def main():
     cfg = Config()
     set_seed(cfg.seed)
     
+    # Sample real data
+    real_data = sample_mog(500, cfg.device).cpu().numpy()
+    print(f"Sampled {len(real_data)} real data points")
+    
     # Generate for trained model
     print("\n" + "="*60)
     print("TRAINED MODEL")
@@ -151,7 +179,7 @@ def main():
     frames = sample_and_visualize_energy_progression(model, cfg)
     
     print(f"Creating grid with {len(frames)} frames...")
-    save_energy_grid(frames, cfg, tag="trained")
+    save_energy_grid(frames, cfg, tag="trained", real_data=real_data)
     
     # Generate for untrained model
     print("\n" + "="*60)
@@ -169,7 +197,7 @@ def main():
     frames_untrained = sample_and_visualize_energy_progression(untrained_model, cfg_untrained)
     
     print(f"Creating grid with {len(frames_untrained)} frames...")
-    save_energy_grid(frames_untrained, cfg_untrained, tag="untrained")
+    save_energy_grid(frames_untrained, cfg_untrained, tag="untrained", real_data=real_data)
     
     print("\nDone!")
 
