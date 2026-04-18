@@ -155,8 +155,13 @@ def save_grid(frames, t_vals, cfg, tag=""):
     n_frames = len(frames)
     cols = max(1, cfg.grid_cols)
     rows = (n_frames + cols - 1) // cols
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 2.0, rows * 2.0))
-    fig.suptitle("flow matching")
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3.0, rows * 3.0), constrained_layout=True)
+    # Set the title to indicate trained or untrained
+    if tag == "untrained":
+        title = "Flow Matching Model - Sample Trajectories (untrained)"
+    else:
+        title = "Flow Matching Model - Sample Trajectories (trained)"
+    fig.suptitle(title, fontsize=18, fontweight="bold", y=1.08)
 
     if rows == 1 and cols == 1:
         axes = np.array([[axes]])
@@ -169,17 +174,30 @@ def save_grid(frames, t_vals, cfg, tag=""):
         r = idx // cols
         c = idx % cols
         ax = axes[r][c]
-        ax.axis("off")
         if idx < n_frames:
             data = frames[idx]
-            ax.scatter(data[:, 0], data[:, 1], s=4, alpha=0.6)
+            # Use a light academic blue (e.g., #4F8CC9)
+            ax.scatter(data[:, 0], data[:, 1], s=24, alpha=0.7, color='#4F8CC9', edgecolor='k', linewidth=0.5)
             ax.set_aspect("equal")
+            ax.set_xlim(-4, 4)
+            ax.set_ylim(-4, 4)
+            ax.set_xticks(np.arange(-4, 5, 2))
+            ax.set_yticks(np.arange(-4, 5, 2))
+            ax.grid(True, linestyle='--', color='gray', alpha=0.7, linewidth=1.0)
             t_val = t_vals[idx]
-            ax.set_title(f"t = {t_val:.2f}", fontsize=9, pad=2)
+            ax.set_title(f"Step {idx} (t={t_val:.3f})", fontsize=12, pad=6)
+            ax.tick_params(axis='both', which='major', labelsize=9, length=4)
+        else:
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_frame_on(False)
+            ax.set_title("")
+            ax.grid(False)
 
+    plt.subplots_adjust(top=0.90, wspace=0.25, hspace=0.25)
     suffix = f"_{tag}" if tag else ""
     png_path = os.path.join(cfg.save_dir, f"flow_matching_grid{suffix}.png")
-    plt.savefig(png_path, bbox_inches="tight", pad_inches=0)
+    plt.savefig(png_path, bbox_inches="tight", pad_inches=0.1)
     plt.close(fig)
 
 
@@ -208,8 +226,8 @@ if __name__ == "__main__":
         untrained = VelocityNet(dim=2, hidden=cfg.hidden, n_layers=cfg.n_layers).to(cfg.device)
         original_dir = cfg.save_dir
         cfg.save_dir = cfg.save_dir_untrained
-        samples = sample(untrained, cfg, tag="untrained")
-        save_samples(samples, cfg, tag="untrained")
+        # Sample and visualize untrained trajectories (calls save_grid if enabled)
+        _ = sample(untrained, cfg, tag="untrained")
         cfg.save_dir = original_dir
 
     model = train(cfg)
