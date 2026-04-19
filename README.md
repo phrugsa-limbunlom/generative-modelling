@@ -1,6 +1,6 @@
-# Generative Modelling - Diffusion, Energy-Based and Flow-Based Models
+# Generative Modelling: Comparative Study of Diffusion, Energy-Based, and Flow-Based Models
 
-Implementations of various generative models including Energy-Based Models (EBM), Diffusion Models, Flow Matching, and Score Matching on 2D toy datasets.
+This repository contains implementations of contemporary generative modeling approaches: Energy-Based Models (EBM), Diffusion Probabilistic Models, Flow Matching, and Score-Based Models. All models are trained and evaluated on 2D synthetic datasets to facilitate theoretical understanding and visual interpretation.
 
 ## Models Implemented
 
@@ -24,15 +24,15 @@ python ebm_cd_mcmc.py
 - `outputs/ebm/trained/ebm_grid_trained.png` - Sampling progression grid
 - `outputs/ebm/untrained/` - Untrained model samples for comparison
 
-### 2. EBM Energy Visualization
+### 2. EBM Energy Landscape Visualization
 **File:** `ebm_energy_visualization.py`
 
 Visualizes the learned energy landscape of trained and untrained EBM models.
 
-- **Trained model:** Shows sharp energy minima at learned data modes
-- **Untrained model:** Shows flat, uniform energy landscape
-- **Visualization:** 13-frame grid showing MCMC progression with energy heatmaps
-- **Color scheme:** viridis (purple=high energy/low probability, yellow=low energy/high probability)
+**Key observations:**
+- Trained models exhibit sharp energy minima at learned data modes
+- Untrained models display flat, uniform energy landscapes
+- Empirical validation of the theoretical relationship: $p(x) \propto \exp(-E(x))$
 
 **Generate visualizations:**
 ```bash
@@ -43,20 +43,16 @@ python ebm_energy_visualization.py
 - `outputs/ebm/trained/ebm_energy_grid_trained.png` - Trained energy landscape
 - `outputs/ebm/untrained/ebm_energy_grid_untrained.png` - Untrained energy landscape
 
-**Key insight:** The relationship is $p(x) \propto \exp(-E(x))$
-- Trained model: Real data at low energy → high probability ✓
-- Untrained model: All points at random energy → uniform probability ✗
-
 ### 3. Diffusion Models (DDPM)
 **File:** `diffusion_train.py`
 
-Denoising diffusion probabilistic model (DDPM) implementation.
+Denoising diffusion probabilistic model (DDPM) implementation following Ho et al. (2020).
 
-- Forward process: Gradually add Gaussian noise to data
-- Reverse process: Learn to denoise back to data
-- Stochastic sampling with explicit noise injection at each step
-- **Visualization:** Grid showing sampling progression from noise to data distribution
-- **Color scheme:** Light academic blue (#4F8CC9) with dashed grid lines
+**Methodology:**
+- Forward process: Progressive Gaussian noise addition to data
+- Reverse process: Learned denoising through noise prediction network
+- Training objective: Mean squared error on predicted noise
+- Sampling: Stochastic reverse process with explicit noise injection
 
 **Run training:**
 ```bash
@@ -65,18 +61,19 @@ python diffusion_train.py
 
 **Key outputs:**
 - `outputs/diffusion/trained/noise_net.pt` - Trained noise prediction network
-- `outputs/diffusion/trained/diffusion_grid_trained.png` - Sampling progression (trained)
-- `outputs/diffusion/untrained/diffusion_grid_untrained.png` - Sampling progression (untrained)
+- `outputs/diffusion/trained/diffusion_grid_trained.png` - Sampling progression visualization
+- `outputs/diffusion/untrained/diffusion_grid_untrained.png` - Untrained baseline
 
-### 4. Score Matching / Diffusion Score Models
+### 4. Score-Based Generative Models
 **File:** `diffusion_score_matching.py`
 
-Score-based generative models using score matching objective.
+Score-based approach using score matching objective as an alternative to noise prediction.
 
-- **Score function:** Learns $\nabla_x \log p(x|t)$ for different noise levels
-- **Sampling:** Reverse-time SDE with learned scores and stochastic noise
-- **Visualization:** Grid showing sampling progression with consistent styling
-- **Key difference from DDPM:** Directly learns score/gradient instead of noise
+**Methodology:**
+- **Score function:** $\nabla_x \log p(x|t)$ representing log-probability gradients at different noise levels
+- **Training objective:** Score matching loss
+- **Sampling:** Reverse-time stochastic differential equation with learned scores
+- **Theoretical advantage:** Direct gradient estimation versus indirect noise prediction
 
 **Run training:**
 ```bash
@@ -85,19 +82,19 @@ python diffusion_score_matching.py
 
 **Key outputs:**
 - `outputs/diffusion_score/trained/score_net.pt` - Trained score network
-- `outputs/diffusion_score/trained/diffusion_score_grid_trained.png` - Sampling progression (trained)
-- `outputs/diffusion_score/untrained/diffusion_score_grid_untrained.png` - Sampling progression (untrained)
+- `outputs/diffusion_score/trained/diffusion_score_grid_trained.png` - Sampling progression
+- `outputs/diffusion_score/untrained/diffusion_score_grid_untrained.png` - Untrained baseline
 
 ### 5. Flow Matching
 **File:** `flow_matching_train.py`
 
-Flow-based generative model matching data and noise distributions through continuous time.
+Flow-based generative model using continuous-time matching between distributions.
 
-- **Velocity network:** Learns flow from noise to data
-- **Training:** Conditional flow matching objective
-- **Sampling:** ODE integration from noise (deterministic, no stochastic noise)
-- **Visualization:** Grid showing trajectory progression with light academic blue points
-- **Key difference:** Deterministic ODE-based sampling vs stochastic diffusion
+**Methodology:**
+- **Velocity network:** Learns the flow field from noise to data distribution
+- **Training objective:** Conditional flow matching loss
+- **Sampling:** Deterministic ODE integration from prior to data distribution
+- **Advantage over diffusion:** Simplified training and deterministic generation process
 
 **Run training:**
 ```bash
@@ -106,8 +103,8 @@ python flow_matching_train.py
 
 **Key outputs:**
 - `outputs/flow_matching/trained/velocity_net.pt` - Trained velocity network
-- `outputs/flow_matching/trained/flow_matching_grid_trained.png` - Sampling progression (trained)
-- `outputs/flow_matching/untrained/flow_matching_grid_untrained.png` - Sampling progression (untrained)
+- `outputs/flow_matching/trained/flow_matching_grid_trained.png` - Sampling progression
+- `outputs/flow_matching/untrained/flow_matching_grid_untrained.png` - Untrained baseline
 
 ## Directory Structure
 
@@ -168,48 +165,42 @@ outputs/
 - **Velocity network:** Direct learning of sample paths
 - **Advantage:** Simpler training than diffusion, single ODE solver
 
-## Visualization Interpretation
+## Visualization and Interpretation
 
-### Grid Visualizations (All Models)
+### Sampling Progression Analysis
 
-All models now include consistent grid visualizations showing the sampling progression:
-- **Grid layout:** 8 columns × 3 rows showing 11 time steps (t=0 to t=1 or equivalent)
-- **Color scheme:** Light academic blue (#4F8CC9) for data points with black edges
-- **Background:** Dashed gray grid lines with axis ticks and labels
-- **Title:** Shows model name and training status (trained/untrained)
-
-### Trained vs Untrained Sampling
+All models produce visualizations documenting the sampling trajectory across multiple time steps:
 
 **Trained Models:**
-- Points progressively cluster around the 8-mode mixture of Gaussians
-- Clear convergence pattern visible across time steps
-- Final distribution matches training data distribution
+- Progressive convergence toward the target data distribution (8-mode Gaussian mixture)
+- Discernible structure in sample concentration patterns
+- Final empirical distribution approaches training data distribution
 
 **Untrained Models:**
-- Flow Matching: Points remain relatively stationary (deterministic ODE with random velocities)
-- Diffusion/Score: Points scatter and spread (stochastic noise injection dominates)
-- No visible structure or convergence to data distribution
+- Baseline behavior without learned generative capacity
+- Flow Matching: Deterministic but unstructured trajectories
+- Diffusion/Score-Based: Dominated by stochastic noise with no coherent structure
 
-### Key Behavioral Differences
+### Behavioral Distinctions
 
-**Deterministic (Flow Matching):**
-- ODE-based sampling without stochastic noise
-- Untrained visualizations show stable/static patterns
-- Sampler follows fixed trajectories learned by velocity network
+**Deterministic Sampling (Flow Matching):**
+- ODE-based generation without stochastic components
+- Reproducible trajectories for given initial conditions
+- Untrained models exhibit fixed, non-convergent patterns
 
-**Stochastic (Diffusion & Score-Based):**
-- Explicit Gaussian noise injection at each step
-- Untrained visualizations show increased scatter as noise dominates
-- Reverse SDE adds randomness to sampling process
+**Stochastic Sampling (Diffusion and Score-Based):**
+- Incorporates explicit Gaussian noise at each generation step
+- Probabilistic reverse process following learned dynamics
+- Untrained models demonstrate uniform noise dominance
 
-### Trained vs Untrained EBM Energy
+### Energy-Based Model Characterization
 
-**Trained Model:**
-- Shows sharp, concentrated energy minima (bright yellow peaks)
-- Multiple modes corresponding to data distribution
-- Clear structure: low energy = high probability at data regions
+**Trained energy landscape:**
+- Sharp, concentrated minima corresponding to data modes
+- Strong energy differentiation across sample space
+- Validates relationship $p(x) \propto \exp(-E(x))$
 
-**Untrained Model:**
-- Flat, uniform energy landscape
-- No learned structure
-- No preferred regions for sampling
+**Untrained energy landscape:**
+- Flat, structureless energy surface
+- Absence of preferred sampling regions
+- Confirms model has not learned data distribution
