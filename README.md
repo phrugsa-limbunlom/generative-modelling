@@ -131,7 +131,7 @@ python diffusion_train_cfg.py
 #### Combined CFG Grid
 **File:** `combine_cfg_grids.py`
 
-Utility that composes the mixed grid, all eight per-class grids, and the untrained baseline into a single annotated poster image using Pillow.
+Utility that composes the untrained baseline, seven per-class grids (classes 0–6), and the mixed-class grid into a single annotated poster using Pillow. The nine panels are arranged as a 3×3 grid in row-major order (untrained first, then each class, then all classes).
 
 **Run:**
 ```bash
