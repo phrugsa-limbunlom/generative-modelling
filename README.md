@@ -143,6 +143,21 @@ python combine_cfg_grids.py
 
 ![DDPM-CFG combined grid](outputs/diffusion_cfg/diffusion_cfg_grid_combined.png)
 
+#### Animated Reverse Diffusion
+**File:** `animate_cfg_grid.py`
+
+Replays the trained model's reverse-diffusion process as an animated GIF, laid out in the same 3×3 panel arrangement as the combined grid (untrained, classes 0–6, all classes). Each panel animates the sample cloud collapsing from Gaussian noise ($t = 1.0$) into its target distribution ($t = 0.0$): the untrained panel stays as noise, each conditional panel converges to a single mode, and the mixed panel forms the full 8-mode mixture.
+
+**Run:**
+```bash
+python animate_cfg_grid.py
+```
+
+**Output:**
+- `outputs/diffusion_cfg/diffusion_cfg_reverse.gif` - Animated reverse-diffusion trajectories
+
+![DDPM-CFG reverse diffusion animation](outputs/diffusion_cfg/diffusion_cfg_reverse.gif)
+
 ### 6. Score-Based Generative Models
 **File:** `diffusion_score_matching.py`
 
@@ -251,7 +266,8 @@ outputs/
 │   │   └── diffusion_cfg_grid_trained_c0..c7.png
 │   ├── untrained/
 │   │   └── diffusion_cfg_grid_untrained.png
-│   └── diffusion_cfg_grid_combined.png
+│   ├── diffusion_cfg_grid_combined.png
+│   └── diffusion_cfg_reverse.gif
 ├── diffusion_score/
 │   ├── trained/
 │   │   ├── score_net.pt
